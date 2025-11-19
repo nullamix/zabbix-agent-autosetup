@@ -1,0 +1,26 @@
+---
+zabbix_deb: >
+             {% if ansible_distribution_major_version == "14" %}
+                zabbix-agent+trusty.deb
+             {% elif ansible_distribution_major_version == "16" %}
+                zabbix-agent+xenial.deb
+             {% elif ansible_distribution_major_version == "18" %}
+                zabbix-agent+bionic.deb
+             {% elif ansible_distribution_major_version == "20" %}
+                zabbix-agent+focal.deb
+             {% endif %}
+
+agent_user: >
+            {% if as_root|lower == "yes" or as_root|lower == "y" +%}
+               root
+            {% else %}
+               zabbix
+            {% endif %}
+
+pi: "{{ passive_server.stdout|trim }}"
+zh: "{{ zbx_hostname.stdout|trim }}"
+up_group:
+
+zabbix_user: ""
+zabbix_password: ""
+...

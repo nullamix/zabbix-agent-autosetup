@@ -1,0 +1,16 @@
+---
+- name: update repository
+  apt:
+    update_cache: yes
+  ignore_errors: yes
+
+- name: install libcurl3
+  apt:
+    name: "{{ 'libcurl4' if ansible_distribution_major_version == '20' else 'libcurl3' }}"
+  when: '"libcurl*" not in ansible_facts.packages'
+
+- name: install traceroute
+  apt:
+    name: traceroute
+  when: '"traceroute" not in ansible_facts.packages'
+...

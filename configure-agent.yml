@@ -1,0 +1,88 @@
+---
+-
+  hosts: all
+
+  vars_files:
+    - vars.yml
+
+  vars_prompt:
+    - name: server_ip
+      prompt: zabbix ip
+      default: 127.0.0.1
+      private: False
+
+    - name: as_root
+      prompt: as a root?
+      default: "yes"
+      private: False
+
+    - name: installing
+      prompt: you wanna installing new agent?
+      default: "yes"
+      private: False
+
+  tasks:
+    - name: gather packages facts
+      package_facts:
+
+    - include_tasks: dependencies.yml
+
+    - include_tasks: install-agent.yml
+      when: installing|lower == "yes" or installing|lower == "y"
+
+    - name: traceroute to zabbix server
+      script: "{{ playbook_dir }}/scripts/find-zbxserver.sh {{ server_ip }}"
+      register: passive_server
+
+    - name: find hostname of target host in zabbix
+      script: "{{ playbook_dir }}/scripts/find-hostname.py -s {{ server_ip }} -i {{ inventory_hostname }} -u {{ zabbix_username }} -p {{ zabbix_password }}"
+      delegate_to: localhost
+      register: zbx_hostname
+
+    - name: scp zabbix_agentd.conf
+      template:
+        src: zabbix_agentd.conf.j2
+        dest: /etc/zabbix/zabbix_agentd.conf
+        owner: zabbix
+        group: zabbix
+        mode: '0644'
+
+    - name: scp zabbix-agent init service
+      template:
+        src: zabbix-agent.j2
+        dest: /etc/default/zabbix-agent
+        owner: zabbix
+        group: zabbix
+        mode: '0644'
+      when: ansible_distribution_major_version == "14"
+
+    - name: scp zabbix-server systemd service
+      template:
+        src: zabbix-agent.service.j2
+        dest: /lib/systemd/system/zabbix-agent.service
+        owner: zabbix
+        group: zabbix
+        mode: '0644'
+      when: ansible_distribution_major_version != "14"
+
+    - name:
+      copy:
+        src: "{{ playbook_dir }}/../userparameters/{{ up_group }}/"
+        dest: /etc/zabbix/zabbix_agentd.d/
+        owner: zabbix
+
+    - name: restart agent
+      service:
+        name: zabbix-agent
+        state: restarted
+        enabled: true
+      when: ansible_distribution_major_version == "14"
+
+    - name: restart agent
+      systemd:
+        name: zabbix-agent
+        daemon_reload: true
+        enabled: true
+        state: restarted
+      when: ansible_distribution_major_version != "14"
+...

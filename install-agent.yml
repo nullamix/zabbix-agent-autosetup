@@ -1,0 +1,14 @@
+---
+- name: gather packages facts
+  package_facts:
+
+- name: scp deb file
+  copy:
+    src: "{{ playbook_dir }}/../agents/{{ zabbix_deb | trim }}"
+    dest: /tmp/
+#  when: '"zabbix-agent" not in ansible_facts.packages'
+
+- name: install deb file
+  apt:
+    deb: "/tmp/{{ zabbix_deb | trim }}"
+...
