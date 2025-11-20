@@ -1,5 +1,5 @@
 ---
--
+- name: Configure Zabbix Agent
   hosts: all
 
   vars_files:
@@ -9,46 +9,53 @@
     - name: server_ip
       prompt: zabbix ip
       default: 127.0.0.1
-      private: False
+      private: false
 
     - name: as_root
       prompt: as a root?
       default: "yes"
-      private: False
+      private: false
 
     - name: installing
       prompt: you wanna installing new agent?
       default: "yes"
-      private: False
+      private: false
 
   tasks:
-    - name: gather packages facts
-      package_facts:
+    - name: Gather packages facts
+      ansible.builtin.package_facts:
 
-    - include_tasks: dependencies.yml
+    - name: Include dependencies tasks
+      ansible.builtin.include_tasks: dependencies.yml
 
-    - include_tasks: install-agent.yml
-      when: installing|lower == "yes" or installing|lower == "y"
+    - name: Include install-agent tasks
+      ansible.builtin.include_tasks: install-agent.yml
+      when: installing | lower == "yes" or installing | lower == "y"
 
-    - name: traceroute to zabbix server
-      script: "{{ playbook_dir }}/scripts/find-zbxserver.sh {{ server_ip }}"
+    - name: Traceroute to zabbix server
+      ansible.builtin.script: "{{ playbook_dir }}/scripts/find-zbxserver.sh {{ server_ip }}"
       register: passive_server
 
-    - name: find hostname of target host in zabbix
-      script: "{{ playbook_dir }}/scripts/find-hostname.py -s {{ server_ip }} -i {{ inventory_hostname }} -u {{ zabbix_username }} -p {{ zabbix_password }}"
+    - name: Find hostname of target host in zabbix
+      ansible.builtin.script: >
+        "{{ playbook_dir }}/scripts/find-hostname.py
+        -s {{ server_ip }}
+        -i {{ inventory_hostname }}
+        -u {{ zabbix_username }}
+        -p {{ zabbix_password }}"
       delegate_to: localhost
       register: zbx_hostname
 
-    - name: scp zabbix_agentd.conf
-      template:
+    - name: SCP zabbix_agentd.conf
+      ansible.builtin.template:
         src: zabbix_agentd.conf.j2
         dest: /etc/zabbix/zabbix_agentd.conf
         owner: zabbix
         group: zabbix
         mode: '0644'
 
-    - name: scp zabbix-agent init service
-      template:
+    - name: SCP zabbix-agent init service
+      ansible.builtin.template:
         src: zabbix-agent.j2
         dest: /etc/default/zabbix-agent
         owner: zabbix
@@ -56,8 +63,8 @@
         mode: '0644'
       when: ansible_distribution_major_version == "14"
 
-    - name: scp zabbix-server systemd service
-      template:
+    - name: SCP zabbix-server systemd service
+      ansible.builtin.template:
         src: zabbix-agent.service.j2
         dest: /lib/systemd/system/zabbix-agent.service
         owner: zabbix
@@ -65,21 +72,23 @@
         mode: '0644'
       when: ansible_distribution_major_version != "14"
 
-    - name:
-      copy:
+    - name: Create userparameter directory
+      ansible.builtin.copy:
         src: "{{ playbook_dir }}/../userparameters/{{ up_group }}/"
         dest: /etc/zabbix/zabbix_agentd.d/
         owner: zabbix
+        group: zabbix
+        mode: '0755'
 
-    - name: restart agent
-      service:
+    - name: Restart agent
+      ansible.builtin.service:
         name: zabbix-agent
         state: restarted
         enabled: true
       when: ansible_distribution_major_version == "14"
 
-    - name: restart agent
-      systemd:
+    - name: Restart agent
+      ansible.builtin.systemd:
         name: zabbix-agent
         daemon_reload: true
         enabled: true
