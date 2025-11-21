@@ -4,7 +4,7 @@
 
 - name: SCP deb file
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../agents/{{ zabbix_deb | trim }}"
+    src: "{{ playbook_dir }}/agents/{{ zabbix_deb | trim }}"
     dest: /tmp/
 #  when: '"zabbix-agent" not in ansible_facts.packages'
 

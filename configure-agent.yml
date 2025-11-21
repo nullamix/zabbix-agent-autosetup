@@ -74,7 +74,7 @@
 
     - name: Create userparameter directory
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../userparameters/{{ up_group }}/"
+        src: "{{ playbook_dir }}/userparameters/{{ up_group }}/"
         dest: /etc/zabbix/zabbix_agentd.d/
         owner: zabbix
         group: zabbix
